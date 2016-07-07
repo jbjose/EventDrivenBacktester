@@ -169,8 +169,10 @@ class HistoricYahooDataHandler(DataHandler):
         Downloads each symbol's history from Yahoo Finance
         """
         comb_index = None
+        start_date = datetime.date(datetime.date.today().year, 1, 1)
+        end_date = datetime.date.today().isoformat()
         for s in self.symbol_list:
-            self.symbol_data[s] = web.DataReader("F", s, start, end)
+            self.symbol_data[s] = web.DataReader(s, 'yahoo', start_date, end_date)
 
             # Combine the index to pad forward values
             if comb_index is None:
@@ -188,11 +190,11 @@ class HistoricYahooDataHandler(DataHandler):
     def _get_new_bar(self, symbol):
         """
         Returns the latest bar from the data feed as a tuple of
-        (sybmbol, datetime, open, low, high, close, volume).
+        (symbol, datetime, open, low, high, close, volume).
         """
         for b in self.symbol_data[symbol]:
-            yield tuple([symbol, datetime.datetime.strptime(b[0], '%Y-%m-%d %H:%M:%S'),
-                         b[1][0], b[1][1], b[1][2], b[1][3], b[1][4]])
+            yield tuple([symbol, b[0], b[1][0], b[1][1], b[1][2], b[1][3], b[1][4]]) # TODO change this to a named tuple
+            # TODO standardize the fields in a bar
 
     def get_latest_bars(self, symbol, N=1):
         """
@@ -220,3 +222,11 @@ class HistoricYahooDataHandler(DataHandler):
                 if bar is not None:
                     self.latest_symbol_data[s].append(bar)
         self.events.put(MarketEvent())
+
+
+if __name__ == "__main__":
+    import Queue
+    events = Queue.Queue()
+    yahoo = HistoricYahooDataHandler(events, ['GOOG', 'AAPL'])
+    yahoo.update_bars()
+    yahoo.get_latest_bars('GOOG')
