@@ -113,7 +113,7 @@ class NaivePortfolio(Portfolio):
 
         # Update positions
         dp = dict( (k,v) for k, v in [(s, 0) for s in self.symbol_list] )
-        dp['datetime'] = bars[self.symbol_list[0]][0][1]
+        dp['datetime'] = bars[self.symbol_list[0]][0].datetime
 
         for s in self.symbol_list:
             dp[s] = self.current_positions[s]
@@ -200,9 +200,10 @@ class NaivePortfolio(Portfolio):
 
         symbol = signal.symbol
         direction = signal.signal_type
-        strength = signal.strength
+        # strength = signal.strength
 
-        mkt_quantity = floor(100 * strength)
+        # mkt_quantity = floor(100 * strength)
+        mkt_quantity = 1
         cur_quantity = self.current_positions[symbol]
         order_type = 'MKT'
 

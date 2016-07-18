@@ -1,11 +1,12 @@
 import datetime
 import os
-import pandas as pd
-
 from abc import ABCMeta, abstractmethod
+from collections import namedtuple
+
+import pandas as pd
+import pandas.io.data as web
 
 from event import MarketEvent
-import pandas.io.data as web
 
 
 class DataHandler(object):
@@ -20,6 +21,8 @@ class DataHandler(object):
     market data would be sent "down the pipe". Thus a historic and live
     system will be treated identically by the rest of the backtesting suite.
     """
+
+    Bar = namedtuple('Bar', ('symbol', 'datetime', 'open', 'low', 'high', 'close', 'volume'))
 
     __metaclass__ = ABCMeta
 
@@ -85,7 +88,7 @@ class HistoricCSVDataHandler(DataHandler):
             self.symbol_data[s] = pd.io.parsers.read_csv(
                 os.path.join(self.csv_dir, '%s.csv' % s),
                 header=0, index_col=0,
-                names=['datetime', 'open', 'low', 'high', 'close', 'volume', 'oi']
+                names=['datetime', 'open', 'low', 'high', 'close', 'volume']
             )
 
             # Combine the index to pad forward values
@@ -107,8 +110,8 @@ class HistoricCSVDataHandler(DataHandler):
         (sybmbol, datetime, open, low, high, close, volume).
         """
         for b in self.symbol_data[symbol]:
-            yield tuple([symbol, datetime.datetime.strptime(b[0], '%Y-%m-%d %H:%M:%S'),
-                         b[1][0], b[1][1], b[1][2], b[1][3], b[1][4]])
+            yield DataHandler.Bar(symbol, datetime.datetime.strptime(b[0], '%Y-%m-%d'), b[1][0], b[1][1], b[1][2],
+                                  b[1][3], b[1][4])
 
     def get_latest_bars(self, symbol, N=1):
         """
@@ -193,8 +196,7 @@ class HistoricYahooDataHandler(DataHandler):
         (symbol, datetime, open, low, high, close, volume).
         """
         for b in self.symbol_data[symbol]:
-            yield tuple([symbol, b[0], b[1][0], b[1][1], b[1][2], b[1][3], b[1][4]]) # TODO change this to a named tuple
-            # TODO standardize the fields in a bar
+            yield DataHandler.Bar(symbol, b[0], b[1][0], b[1][1], b[1][2], b[1][3], b[1][4])
 
     def get_latest_bars(self, symbol, N=1):
         """
@@ -226,7 +228,9 @@ class HistoricYahooDataHandler(DataHandler):
 
 if __name__ == "__main__":
     import Queue
+
     events = Queue.Queue()
-    yahoo = HistoricYahooDataHandler(events, ['GOOG', 'AAPL'])
-    yahoo.update_bars()
-    yahoo.get_latest_bars('GOOG')
+    # yahoo = HistoricYahooDataHandler(events, ['GOOG', 'AAPL'])
+    csv_dh = HistoricCSVDataHandler(events, os.path.join(os.getcwd(), 'data'), ['GOOG', 'AAPL'])
+    csv_dh.update_bars()
+    print csv_dh.get_latest_bars('GOOG')
